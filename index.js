@@ -16,6 +16,16 @@ const {
   updateExpense,
   deleteExpense,
   getExpenses,
+  getCategories,
+  addCategory,
+  deleteCategory,
+  getCategorySummary,
+  getMonthlyReport,
+  getQuarterlyReport,
+  getYearlyReport,
+  getCustomDateRangeReport,
+  getComparisonReport,
+  getDashboardSummary,
 } = require('./controllers');
 
 // dotenv.config();
