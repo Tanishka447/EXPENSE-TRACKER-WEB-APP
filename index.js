@@ -45,18 +45,17 @@ app.post('/expenses', authenticateToken, addExpense(pool));
 app.put('/expenses/:id', authenticateToken, updateExpense(pool));
 app.delete('/expenses/:id', authenticateToken, deleteExpense(pool));
 app.get('/expenses', authenticateToken, getExpenses(pool));
-app.get('/api/dashboard', async (req, res) => {
-  try {
-    const client = await pool.connect();
-    const result = await client.query('SELECT * FROM dashboard');
-    const dashboardData = result.rows[0]; 
-    client.release();
-    res.json(dashboardData);
-  } catch (err) {
-    console.error('Error fetching dashboard data', err);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
+app.get('/categories' , authenticateToken , getCategories(pool));
+app.post('/addcategory', authenticateToken , addCategory(pool));
+app.delete('/deletecat' , authenticateToken , deleteCategory(pool));
+app.get('/catsummary' , authenticateToken , getCategorySummary(pool));
+app.get('/monthly' , authenticateToken , getMonthlyReport(pool));
+app.get('./quaterly' , authenticateToken , getQuarterlyReport(pool));
+app.get('/Yearly' , authenticateToken , getYearlyReport(pool));
+app.get('/rangereport' , authenticateToken , getCustomDateRangeReport(pool));
+app.get('/comparison' , authenticateToken , getComparisonReport(pool));
+app.get('/dasdboard', authenticateToken, getDashboardSummary(pool));
+
 
 
 app.listen(port, () => {
