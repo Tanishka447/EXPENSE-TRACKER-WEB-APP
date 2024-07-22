@@ -1,4 +1,3 @@
-const { default: board } = require("../frontend/src/components/board");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
