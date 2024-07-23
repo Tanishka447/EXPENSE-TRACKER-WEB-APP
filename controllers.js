@@ -154,8 +154,6 @@ try {
 }
 };
 
-
-
 const getYearlyReport = (pool) => async (req, res) => {
   const { year } = req.params;
   try {
@@ -172,58 +170,56 @@ const getYearlyReport = (pool) => async (req, res) => {
     }
 };
 
-
-
 const getCustomDateRangeReport = (pool) => async (req, res) => {
-  const { startDate, endDate } = req.params;
+  const { startDate, endDate } = req.body;
   try {
-    const result = await pool.query(`
-      SELECT   date, amount FROM   reports
-      WHERE  user_id = $1 AND date >= $2 AND date <= $3
-      ORDER BY  date`, [userId, startDate, endDate]);
-    res.status(200).json(result.rows);
-  } catch (error) {
-    console.error('Error generating custom date range report:', error);
+    const query = `
+        SELECT *
+        FROM reports
+        WHERE start_date >= $1 AND end_date <= $2`;
+    const { rows } = await pool.query(query, [startDate, endDate]);
+    res.status(200).json(rows);
+} catch (error) {
+    console.error('Error fetching reports:', error);
     res.status(500).json({ error: 'Internal server error' });
-  }
+}
 };
 
-const getComparisonReport = (pool) => async (req, res) => {
-  const userId = req.user.id;
-  try {
-    const result = await pool.query(`
-      WITH current_month_expenses AS (
-        SELECT    SUM(amount) AS current_month_total
-        FROM  expenses WHERE user_id = $1 AND
-          EXTRACT(MONTH FROM date) = EXTRACT(MONTH FROM NOW())
-      ),
-      previous_month_expenses AS (
-        SELECT 
-          SUM(amount) AS previous_month_total
-        FROM  expenses
-        WHERE   user_id = $1 AND
-          EXTRACT(MONTH FROM date) = EXTRACT(MONTH FROM NOW() - INTERVAL '1 month')
-      )
-      SELECT 
-        current_month_total,previous_month_total
-      FROM 
-        current_month_expenses, previous_month_expenses
-    `, [userId]);
+// const getComparisonReport = (pool) => async (req, res) => {
+//   const userId = req.user.id;
+//   try {
+//     const result = await pool.query(`
+//       WITH current_month_expenses AS (
+//         SELECT    SUM(amount) AS current_month_total
+//         FROM  expenses WHERE user_id = $1 AND
+//           EXTRACT(MONTH FROM date) = EXTRACT(MONTH FROM NOW())
+//       ),
+//       previous_month_expenses AS (
+//         SELECT 
+//           SUM(amount) AS previous_month_total
+//         FROM  expenses
+//         WHERE   user_id = $1 AND
+//           EXTRACT(MONTH FROM date) = EXTRACT(MONTH FROM NOW() - INTERVAL '1 month')
+//       )
+//       SELECT 
+//         current_month_total,previous_month_total
+//       FROM 
+//         current_month_expenses, previous_month_expenses
+//     `, [userId]);
 
-    const { current_month_total, previous_month_total } = result.rows[0];
-    res.status(200).json({ current_month_total, previous_month_total });
-  } catch (error) {
-    console.error('Error generating comparison report:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-};
+//     const { current_month_total, previous_month_total } = result.rows[0];
+//     res.status(200).json({ current_month_total, previous_month_total });
+//   } catch (error) {
+//     console.error('Error generating comparison report:', error);
+//     res.status(500).json({ error: 'Internal server error' });
+//   }
+// };
 
 //dashboard
-
 const getDashboardSummary = (pool) => async (req, res) => {
-  const userId = req.user.id; 
+  const {id} = req.params; 
   try {
-    const expensesResult = await pool.query('SELECT COALESCE(SUM(amount), 0) AS total_expenses FROM expenses WHERE user_id = $1', [userId]);
+    const expensesResult = await pool.query('SELECT COALESCE(SUM(expenditure_amount), 0) AS total_expenses FROM reports WHERE id = $1', [id]);
     const totalExpenses = expensesResult.rows[0].total_expenses;
     const totalIncome = 0; 
     const balance = totalIncome - totalExpenses;
@@ -245,9 +241,9 @@ const getDashboardSummary = (pool) => async (req, res) => {
       getCategories,
     addCategory,
     deleteCategory,
-    getYearlyReport,
-    // getCustomDateRangeReport,
-    // getComparisonReport,
-    // getDashboardSummary,
     getreports,
+    getYearlyReport,
+    getCustomDateRangeReport,
+    // getComparisonReport,
+    getDashboardSummary,
   };
