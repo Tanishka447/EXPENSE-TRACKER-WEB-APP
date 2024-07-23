@@ -10,7 +10,11 @@ const registerUser = (pool, bcrypt) => async (req, res) => {
         [name, email, hashedPassword]
       );
       console.log("result:",result.rows[0]);
-      res.status(200).json({ id: result.rows[0].id });
+
+      res.status(200).json({ 
+        message: 'User successfully registered',
+        id: result.rows[0].id 
+      });
     } catch (error) {
       console.error('Error inserting user:', error);
       res.status(500).json({ error: 'Internal server error' });
@@ -79,32 +83,32 @@ const registerUser = (pool, bcrypt) => async (req, res) => {
   };
 
   const getExpenses = (pool) => async (req, res) => {
-    const userId = req.user.id;
+    const {id} = req.params;
     try {
       const result = await pool.query(
         'SELECT * FROM expenses WHERE user_id = $1 ORDER BY date DESC',
-        [userId]
+        [id]
       );
       res.status(200).json(result.rows);
     } catch (error) {
-     res.status(500).json({error : 'Internal server error'});
+      res.status(500).json({ error: 'Internal server error' });
     }
   };
 //categories
-  const getCategories=(pool) =async(req,res)=>{
-    const userId=req.user.id;
-    try{
+  const getCategories = (pool) => async (req, res) => {
+    const {id} = req.params;
+    try {
       const result = await pool.query(
-        'SELECT * FROM categories where user_id =$1',[userId]
+        'SELECT * FROM categories where id =$1', [id]
       );
-      res.status(200).json(reslt.rows);
-    }catch(err){
-      console.log('error in getting the category',err);
-      res.status(500).json({error: 'Internal server error'});
+      res.status(200).json(result.rows);
+    } catch (err) {
+      console.log('error in getting the category', err);
+      res.status(500).json({ error: 'Internal server error' });
     }
   };
 
-  const addCategory = (pool) = async (req, res) => {
+  const addCategory = (pool) => async (req, res) => {
     const { name, budget } = req.body;
     const userId = req.user.id; 
     try {
@@ -116,11 +120,10 @@ const registerUser = (pool, bcrypt) => async (req, res) => {
     }
   };
 
-  const deleteCategory = (pool) =async (req, res) => {
+  const deleteCategory = (pool) => async (req, res) => {
     const { id } = req.params;
     try {
       await pool.query('DELETE FROM categories WHERE id = $1', [id]);
-      await pool.query('DELETE FROM expenses WHERE category_id = $1', [id]);
       res.status(200).json({ message: 'Category deleted successfully' });
     } catch (error) {
       console.error('Error deleting category:', error);
@@ -128,51 +131,43 @@ const registerUser = (pool, bcrypt) => async (req, res) => {
     }
   };
   
-  const getCategorySummary = (pool) = async (req, res) => {
-    const userId = req.user.id; 
-    try {
-      const result = await pool.query(`
-        SELECT 
-          c.id, 
-          c.name, 
-          COALESCE(SUM(e.amount), 0) AS total_expenses
-        FROM 
-          categories c
-        LEFT JOIN 
-          expenses e ON c.id = e.category_id
-        WHERE 
-          c.user_id = $1
-        GROUP BY 
-          c.id, c.name
-      `, [userId]);
-      res.status(200).json(result.rows);
-    } catch (error) {
-      console.error('Error retrieving category summary:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  };
+  // const getCategorySummary = (pool) = async (req, res) => {
+  //   const userId = req.user.id; 
+  //   try {
+  //     const result = await pool.query(`
+  //       SELECT 
+  //         c.id, 
+  //         c.name, 
+  //         COALESCE(SUM(e.amount), 0) AS total_expenses
+  //       FROM 
+  //         categories c
+  //       LEFT JOIN 
+  //         expenses e ON c.id = e.category_id
+  //       WHERE 
+  //         c.user_id = $1
+  //       GROUP BY 
+  //         c.id, c.name
+  //     `, [userId]);
+  //     res.status(200).json(result.rows);
+  //   } catch (error) {
+  //     console.error('Error retrieving category summary:', error);
+  //     res.status(500).json({ error: 'Internal server error' });
+  //   }
+  // };
 
 
   //reports
-const getMonthlyReport = (pool) =  async (req, res) => {
-  const { year } = req.query;
-  const userId = req.user.id; 
+const getMonthlyReport = (pool) => async (req, res) => {
+  const {  month } = req.params;
+  // const userId = req.user.id;
   try {
-    const result = await pool.query(`
-      SELECT 
-        to_char(date, 'MM') AS month,
-        SUM(amount) AS total_expenses
-      FROM  expenses
-      WHERE   user_id = $1 AND
-        EXTRACT(YEAR FROM date) = $2
-      GROUP BY 
-        EXTRACT(MONTH FROM date)
-      ORDER BY 
-        EXTRACT(MONTH FROM date)
-    `, [userId, year]);
-
-    res.status(200).json(result.rows);
-  } catch (error) {
+    const query = `SELECT * 
+          FROM reports 
+          WHERE EXTRACT(YEAR FROM report_date) = $1 
+          AND EXTRACT(MONTH FROM report_date) = $2;`;
+      const { rows } = await pool.query(query, [ month]);
+      res.json(rows);
+   } catch (error) {
     console.error('Error generating monthly report:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -267,7 +262,6 @@ const getComparisonReport = (pool) = async (req, res) => {
   }
 };
 
-
 //dashboard
 
 const getDashboardSummary = (pool) = async (req, res) => {
@@ -292,11 +286,11 @@ const getDashboardSummary = (pool) = async (req, res) => {
     updateExpense,
     deleteExpense,
     getExpenses,
-    //   getCategories,
-    // addCategory,
-    // deleteCategory,
+      getCategories,
+    addCategory,
+    deleteCategory,
     // getCategorySummary,
-    // getMonthlyReport,
+    getMonthlyReport,
     // getQuarterlyReport,
     // getYearlyReport,
     // getCustomDateRangeReport,

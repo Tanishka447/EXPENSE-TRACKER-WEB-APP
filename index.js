@@ -16,11 +16,11 @@ const {
   updateExpense,
   deleteExpense,
   getExpenses,
-  // getCategories,
-  // addCategory,
-  // deleteCategory,
+  getCategories,
+  addCategory,
+  deleteCategory,
   // getCategorySummary,
-  // getMonthlyReport,
+  getMonthlyReport,
   // getQuarterlyReport,
   // getYearlyReport,
   // getCustomDateRangeReport,
@@ -54,12 +54,13 @@ app.post('/login', loginUser(pool, bcrypt, jwt, JWT_SECRET));
 app.post('/expenses', authenticateToken, addExpense(pool));
 app.put('/expenses/:id', authenticateToken, updateExpense(pool));
 app.delete('/expenses/:id', authenticateToken, deleteExpense(pool));
-app.get('/expenses', authenticateToken, getExpenses(pool));
-// app.get('/categories' , authenticateToken , getCategories(pool));
-// app.post('/addcategory', authenticateToken , addCategory(pool));
-// app.delete('/deletecat' , authenticateToken , deleteCategory(pool));
+app.get('/expenses/:id', authenticateToken, getExpenses(pool));
+app.get('/categories/:id', authenticateToken, getCategories(pool));
+app.post('/addcategory', authenticateToken, addCategory(pool));
+app.delete('/deletecat/:id', authenticateToken, deleteCategory(pool));
+
 // app.get('/catsummary' , authenticateToken , getCategorySummary(pool));
-// app.get('/monthly' , authenticateToken , getMonthlyReport(pool));
+app.get('/monthly/:month', authenticateToken, getMonthlyReport(pool));
 // app.get('./quaterly' , authenticateToken , getQuarterlyReport(pool));
 // app.get('/Yearly' , authenticateToken , getYearlyReport(pool));
 // app.get('/rangereport' , authenticateToken , getCustomDateRangeReport(pool));
