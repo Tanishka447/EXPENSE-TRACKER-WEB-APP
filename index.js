@@ -19,16 +19,13 @@ const {
   getCategories,
   addCategory,
   deleteCategory,
-  // getCategorySummary,
-  getMonthlyReport,
-  // getQuarterlyReport,
-  // getYearlyReport,
+  getreports,
+  getYearlyReport,
   // getCustomDateRangeReport,
   // getComparisonReport,
   // getDashboardSummary,
 } = require('./controllers');
 
-// dotenv.config();
 const app = express();
 // const port = process.env.PORT || 9000;
 
@@ -58,11 +55,8 @@ app.get('/expenses/:id', authenticateToken, getExpenses(pool));
 app.get('/categories/:id', authenticateToken, getCategories(pool));
 app.post('/addcategory', authenticateToken, addCategory(pool));
 app.delete('/deletecat/:id', authenticateToken, deleteCategory(pool));
-
-// app.get('/catsummary' , authenticateToken , getCategorySummary(pool));
-app.get('/monthly/:month', authenticateToken, getMonthlyReport(pool));
-// app.get('./quaterly' , authenticateToken , getQuarterlyReport(pool));
-// app.get('/Yearly' , authenticateToken , getYearlyReport(pool));
+app.get('/getallreports/:year/:month' ,authenticateToken,getreports(pool));
+app.get('/Yearly/:year' , authenticateToken , getYearlyReport(pool));
 // app.get('/rangereport' , authenticateToken , getCustomDateRangeReport(pool));
 // app.get('/comparison' , authenticateToken , getComparisonReport(pool));
 // app.get('/dasdboard', authenticateToken, getDashboardSummary(pool));

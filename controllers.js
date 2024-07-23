@@ -131,98 +131,54 @@ const registerUser = (pool, bcrypt) => async (req, res) => {
     }
   };
   
-  // const getCategorySummary = (pool) = async (req, res) => {
-  //   const userId = req.user.id; 
-  //   try {
-  //     const result = await pool.query(`
-  //       SELECT 
-  //         c.id, 
-  //         c.name, 
-  //         COALESCE(SUM(e.amount), 0) AS total_expenses
-  //       FROM 
-  //         categories c
-  //       LEFT JOIN 
-  //         expenses e ON c.id = e.category_id
-  //       WHERE 
-  //         c.user_id = $1
-  //       GROUP BY 
-  //         c.id, c.name
-  //     `, [userId]);
-  //     res.status(200).json(result.rows);
-  //   } catch (error) {
-  //     console.error('Error retrieving category summary:', error);
-  //     res.status(500).json({ error: 'Internal server error' });
-  //   }
-  // };
-
-
-  //reports
-const getMonthlyReport = (pool) => async (req, res) => {
-  const {  month } = req.params;
-  // const userId = req.user.id;
-  try {
-    const query = `SELECT * 
-          FROM reports 
-          WHERE EXTRACT(YEAR FROM report_date) = $1 
-          AND EXTRACT(MONTH FROM report_date) = $2;`;
-      const { rows } = await pool.query(query, [ month]);
-      res.json(rows);
-   } catch (error) {
-    console.error('Error generating monthly report:', error);
+const getreports = (pool) => async (req, res) => {
+const { year, month } = req.params;
+try {
+    const query = `
+           SELECT COALESCE(SUM(expenditure_amount), 0) AS monthly_expenditure
+            FROM reports 
+            WHERE EXTRACT(YEAR FROM start_date) = $1 
+            AND EXTRACT(MONTH FROM start_date) = $2 
+            AND report_type = 'Monthly';
+            `;
+    const { rows } = await pool.query(query, [year, month]);
+    const monthlyExpenditure = rows[0].monthly_expenditure || 0;
+    res.json({ 
+        year: parseInt(year),
+        month: parseInt(month),
+        monthly_expenditure: parseFloat(monthlyExpenditure)
+    });
+} catch (err) {
+    console.error('Error executing query', err);
     res.status(500).json({ error: 'Internal server error' });
-  }
-};
-
-const getQuarterlyReport = (pool) = async (req, res) => {
-  const { year } = req.query;
-  const userId = req.user.id; 
-  try{
-    const result = await pool.query(`
-      SELECT 
-        CONCAT('Q', EXTRACT(QUARTER FROM date)) AS quarter,
-        SUM(amount) AS total_expenses
-      FROM   expenses
-      WHERE   user_id = $1 AND
-        EXTRACT(YEAR FROM date) = $2
-      GROUP BY 
-        EXTRACT(QUARTER FROM date)
-      ORDER BY 
-        EXTRACT(QUARTER FROM date)
-    `, [userId, year]);
-
-    res.status(200).json(result.rows);
-  } catch (error) {
-    console.error('Error generating quarterly report:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-};
-
-const getYearlyReport = (pool)= async (req, res) => {
-  const userId = req.user.id; 
-  try {
-    const result = await pool.query(`
-      SELECT 
-        EXTRACT(YEAR FROM date) AS year,
-        SUM(amount) AS total_expenses FROM   expenses
-      WHERE   user_id = $1
-      GROUP BY   EXTRACT(YEAR FROM date)
-      ORDER BY  EXTRACT(YEAR FROM date)`, [userId]);
-
-    res.status(200).json(result.rows);
-  } catch (error) {
-    console.error('Error generating yearly report:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
+}
 };
 
 
 
-const getCustomDateRangeReport = (pool) = async (req, res) => {
-  const { startDate, endDate } = req.query;
-  const userId = req.user.id; 
+const getYearlyReport = (pool) => async (req, res) => {
+  const { year } = req.params;
+  try {
+    const query = ` SELECT *
+            FROM reports
+            WHERE EXTRACT(YEAR FROM start_date) = $1;
+        `;
+        const { rows } = await pool.query(query, [year]);
+
+        res.json(rows);
+    } catch (err) {
+        console.error('Error executing query', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+
+
+const getCustomDateRangeReport = (pool) => async (req, res) => {
+  const { startDate, endDate } = req.params;
   try {
     const result = await pool.query(`
-      SELECT   date, amount FROM   expenses
+      SELECT   date, amount FROM   reports
       WHERE  user_id = $1 AND date >= $2 AND date <= $3
       ORDER BY  date`, [userId, startDate, endDate]);
     res.status(200).json(result.rows);
@@ -232,7 +188,7 @@ const getCustomDateRangeReport = (pool) = async (req, res) => {
   }
 };
 
-const getComparisonReport = (pool) = async (req, res) => {
+const getComparisonReport = (pool) => async (req, res) => {
   const userId = req.user.id;
   try {
     const result = await pool.query(`
@@ -264,7 +220,7 @@ const getComparisonReport = (pool) = async (req, res) => {
 
 //dashboard
 
-const getDashboardSummary = (pool) = async (req, res) => {
+const getDashboardSummary = (pool) => async (req, res) => {
   const userId = req.user.id; 
   try {
     const expensesResult = await pool.query('SELECT COALESCE(SUM(amount), 0) AS total_expenses FROM expenses WHERE user_id = $1', [userId]);
@@ -289,11 +245,9 @@ const getDashboardSummary = (pool) = async (req, res) => {
       getCategories,
     addCategory,
     deleteCategory,
-    // getCategorySummary,
-    getMonthlyReport,
-    // getQuarterlyReport,
-    // getYearlyReport,
+    getYearlyReport,
     // getCustomDateRangeReport,
     // getComparisonReport,
     // getDashboardSummary,
+    getreports,
   };
