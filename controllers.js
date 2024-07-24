@@ -3,10 +3,11 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 const registerUser = (pool, bcrypt) => async (req, res) => {
     const { name, email, password } = req.body;
+    const CreatedDate = new Date();
     try {
       const hashedPassword = await bcrypt.hash(password, 10);
       const result = await pool.query(
-        'INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id',
+        `INSERT INTO users (name, email, password, CreatedDate) VALUES ($1, $2, $3, ${CreatedDate}) RETURNING id`,
         [name, email, hashedPassword]
       );
       console.log("result:",result.rows[0]);
@@ -192,8 +193,7 @@ const getCustomDateRangeReport = (pool) => async (req, res) => {
 //       WITH current_month_expenses AS (
 //         SELECT    SUM(amount) AS current_month_total
 //         FROM  expenses WHERE user_id = $1 AND
-//           EXTRACT(MONTH FROM date) = EXTRACT(MONTH FROM NOW())
-//       ),
+//           EXTRACT(MONTH FROM date) = EXTRACT(MONTH FROM NOW()) ),
 //       previous_month_expenses AS (
 //         SELECT 
 //           SUM(amount) AS previous_month_total
@@ -206,7 +206,6 @@ const getCustomDateRangeReport = (pool) => async (req, res) => {
 //       FROM 
 //         current_month_expenses, previous_month_expenses
 //     `, [userId]);
-
 //     const { current_month_total, previous_month_total } = result.rows[0];
 //     res.status(200).json({ current_month_total, previous_month_total });
 //   } catch (error) {
@@ -221,7 +220,7 @@ const getDashboardSummary = (pool) => async (req, res) => {
   try {
     const expensesResult = await pool.query('SELECT COALESCE(SUM(expenditure_amount), 0) AS total_expenses FROM reports WHERE id = $1', [id]);
     const totalExpenses = expensesResult.rows[0].total_expenses;
-    const totalIncome = 0; 
+    const totalIncome = 30000 ; 
     const balance = totalIncome - totalExpenses;
 
     res.status(200).json({ totalExpenses, balance });
