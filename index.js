@@ -22,7 +22,6 @@ const {
   getreports,
   getYearlyReport,
   getCustomDateRangeReport,
-  // getComparisonReport,
   getDashboardSummary,
 } = require('./controllers');
 
@@ -58,7 +57,6 @@ app.delete('/deletecat/:id', authenticateToken, deleteCategory(pool));
 app.get('/getallreports/:year/:month' ,authenticateToken,getreports(pool));
 app.get('/Yearly/:year' , authenticateToken , getYearlyReport(pool));
 app.post('/rangereport' , authenticateToken , getCustomDateRangeReport(pool));
-// app.get('/comparison' , authenticateToken , getComparisonReport(pool));
 app.get('/dasdboard/:id', authenticateToken, getDashboardSummary(pool));
 
 

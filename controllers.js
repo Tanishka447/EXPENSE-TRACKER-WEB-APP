@@ -3,12 +3,12 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 const registerUser = (pool, bcrypt) => async (req, res) => {
     const { name, email, password } = req.body;
-    const CreatedDate = new Date();
     try {
       const hashedPassword = await bcrypt.hash(password, 10);
+      const currentDate = new Date();
       const result = await pool.query(
-        `INSERT INTO users (name, email, password, CreatedDate) VALUES ($1, $2, $3, ${CreatedDate}) RETURNING id`,
-        [name, email, hashedPassword]
+        `INSERT INTO users (name, email, password,date) VALUES ($1, $2, $3 , $4) RETURNING id, currentDate`,
+        [name, email, hashedPassword,currentDate]
       );
       console.log("result:",result.rows[0]);
 
@@ -22,17 +22,23 @@ const registerUser = (pool, bcrypt) => async (req, res) => {
     }
   };
   
+
+
   const loginUser = (pool, bcrypt, jwt, JWT_SECRET) => async (req, res) => {
     const { email, password } = req.body;
     try {
-      const result = await pool.query('SELECT * FROM users WHERE email = $1', [
-        email,
-      ]);
+      const result = await pool.query('SELECT id, name, email, password, date FROM users WHERE email = $1', [email]);
       const user = result.rows[0];
       if (user && (await bcrypt.compare(password, user.password))) {
-        const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '18h' });
+        const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '48h' });
         console.log("Generated token:", token);
-        res.status(200).json({ token });
+        res.status(200).json({ 
+          token,
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          date: user.date // Include the date in the response
+        });
       } else {
         console.log("Authentication failed for email:", email);
         res.status(401).json({ error: 'Authentication failed' });
@@ -42,28 +48,36 @@ const registerUser = (pool, bcrypt) => async (req, res) => {
       res.status(500).json({ error: 'Internal server error' });
     }
   };
-
+  
   const addExpense =(pool) => async(req, res) =>{
-    const{amount , category , date , notes} =req.body;
+    const{amount , category , notes} =req.body;
     const userId =req.user.id;
+    const currentDate = new Date();
     try{
       const result = await pool.query(
-       'INSERT INTO expenses (user_id, amount, category, date, notes) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-       [userId, amount, category, date, notes]
+       'INSERT INTO expenses (user_id, amount, category, date ,notes) VALUES ($1, $2, $3, $4, $5) RETURNING *,created_at',
+       [userId, amount, category, currentDate , notes]
       );
-      res.status(201).json({ expense: result.rows[0] });
-     } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
+      if (result.rows.length > 0) {
+        res.status(201).json({ expense: result.rows[0] });
+      } else {
+        throw new Error('Failed to insert expense.');
+      }
+    } catch (error) {
+      console.error('Error adding expense:', error.message);
+      res.status(500).json({ error: 'Internal server error' });
     }
   };
 
   const updateExpense = (pool) => async (req, res) => {
-    const { amount, category, date, notes } = req.body;
+    const { amount, category, notes } = req.body;
     const { id } = req.params;
+    const currentDate = new Date();
+    
     try {
       const result = await pool.query(
-        'UPDATE expenses SET amount = $1, category = $2, date = $3, notes = $4 WHERE id = $5 RETURNING *',
-        [amount, category, date, notes, id]
+        'UPDATE expenses SET amount = $1, category = $2, date = $3, notes = $4, updated_at = $5 WHERE id = $6 RETURNING *',
+        [amount, category, req.body.date, notes, currentDate,id]
       );
       res.status(200).json({ expense: result.rows[0] });
     } catch (error) {
@@ -160,8 +174,7 @@ const getYearlyReport = (pool) => async (req, res) => {
   try {
     const query = ` SELECT *
             FROM reports
-            WHERE EXTRACT(YEAR FROM start_date) = $1;
-        `;
+            WHERE EXTRACT(YEAR FROM start_date) = $1; `;
         const { rows } = await pool.query(query, [year]);
 
         res.json(rows);
@@ -186,33 +199,6 @@ const getCustomDateRangeReport = (pool) => async (req, res) => {
 }
 };
 
-// const getComparisonReport = (pool) => async (req, res) => {
-//   const userId = req.user.id;
-//   try {
-//     const result = await pool.query(`
-//       WITH current_month_expenses AS (
-//         SELECT    SUM(amount) AS current_month_total
-//         FROM  expenses WHERE user_id = $1 AND
-//           EXTRACT(MONTH FROM date) = EXTRACT(MONTH FROM NOW()) ),
-//       previous_month_expenses AS (
-//         SELECT 
-//           SUM(amount) AS previous_month_total
-//         FROM  expenses
-//         WHERE   user_id = $1 AND
-//           EXTRACT(MONTH FROM date) = EXTRACT(MONTH FROM NOW() - INTERVAL '1 month')
-//       )
-//       SELECT 
-//         current_month_total,previous_month_total
-//       FROM 
-//         current_month_expenses, previous_month_expenses
-//     `, [userId]);
-//     const { current_month_total, previous_month_total } = result.rows[0];
-//     res.status(200).json({ current_month_total, previous_month_total });
-//   } catch (error) {
-//     console.error('Error generating comparison report:', error);
-//     res.status(500).json({ error: 'Internal server error' });
-//   }
-// };
 
 //dashboard
 const getDashboardSummary = (pool) => async (req, res) => {
@@ -243,6 +229,5 @@ const getDashboardSummary = (pool) => async (req, res) => {
     getreports,
     getYearlyReport,
     getCustomDateRangeReport,
-    // getComparisonReport,
     getDashboardSummary,
   };
